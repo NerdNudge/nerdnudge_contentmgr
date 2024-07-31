@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/nerdnudge/quotes")
+@RequestMapping("/api/nerdnudge/quotes")
 public class QuotesController {
     @Autowired
     QuotesService quotesService;

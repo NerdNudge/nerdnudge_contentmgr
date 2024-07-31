@@ -7,5 +7,5 @@ import java.util.List;
 public interface QuizflexService {
     List<QuizflexEntity> getQuizFlexes(String topic, String subtopic, int limit);
 
-    QuizflexEntity getQuizFlexById(String id);
+    QuizflexEntity getQuizFlexById(String id) throws Exception;
 }

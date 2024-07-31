@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/nerdnudge/topics")
+@RequestMapping("/api/nerdnudge/topics")
 public class TopicsController {
     @Autowired
     TopicsService topicsService;

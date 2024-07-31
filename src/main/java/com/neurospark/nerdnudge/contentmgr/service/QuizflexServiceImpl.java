@@ -11,6 +11,7 @@ import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -125,7 +126,15 @@ public class QuizflexServiceImpl implements QuizflexService {
     }
 
     @Override
-    public QuizflexEntity getQuizFlexById(String id) {
-        return contentMaster.get(id);
+    public QuizflexEntity getQuizFlexById(String id) throws Exception {
+        if(contentMaster.containsKey(id))
+            return contentMaster.get(id);
+
+        throw new Exception("Invalid Quizflex Id");
     }
+
+    /*@Scheduled(fixedRate = 1000)
+    public void refreshNow() {
+        System.out.println("Refreshed at: " + new Date());
+    }*/
 }

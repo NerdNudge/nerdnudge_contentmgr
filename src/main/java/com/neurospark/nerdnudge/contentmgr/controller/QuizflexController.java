@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/nerdnudge/quizflexes")
+@RequestMapping("/api/nerdnudge/quizflexes")
 public class QuizflexController {
     @Autowired
     QuizflexService quizflexService;
@@ -27,7 +27,7 @@ public class QuizflexController {
     }
 
     @GetMapping("/get/{id}")
-    public ApiResponse<QuizflexEntity> getQuizFlexById(@PathVariable(value = "id") String quizflexId) {
+    public ApiResponse<QuizflexEntity> getQuizFlexById(@PathVariable(value = "id") String quizflexId) throws Exception {
         long startTime = System.currentTimeMillis();
         QuizflexEntity quizflexEntityResponse = quizflexService.getQuizFlexById(quizflexId);
         long endTime = System.currentTimeMillis();
