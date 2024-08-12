@@ -22,8 +22,8 @@ public class QuizflexEntity {
     String pro_tip;
     String fun_fact;
 
-    int likes;
-    int dislikes;
-    int favorites;
-    int shares;
+    long likes;
+    long dislikes;
+    long favorites;
+    long shares;
 }

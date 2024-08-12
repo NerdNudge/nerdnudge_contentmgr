@@ -19,7 +19,7 @@ public class QuizflexController {
     public ApiResponse<List<QuizflexEntity>> getQuizFlexes(
             @RequestParam String topic,
             @RequestParam String subtopic,
-            @RequestParam int limit) {
+            @RequestParam int limit) throws Exception {
         long startTime = System.currentTimeMillis();
         List<QuizflexEntity> quizflexes = quizflexService.getQuizFlexes(topic, subtopic, limit);
         long endTime = System.currentTimeMillis();

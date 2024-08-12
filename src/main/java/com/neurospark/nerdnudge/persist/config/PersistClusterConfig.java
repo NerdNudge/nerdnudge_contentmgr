@@ -5,6 +5,7 @@ import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.env.ClusterEnvironment;
 import com.couchbase.client.java.json.JsonObject;
+import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -53,5 +54,10 @@ public class PersistClusterConfig {
     @Bean(name = "dbConnections")
     public JsonObject dbConnections(Collection configCollection) {
         return configCollection.get(persistDBConnectionsDocumentId).contentAsObject();
+    }
+
+    @Bean(name = "shotsStatsPersist")
+    public NerdPersistClient shotsStatsPersist() {
+        return new NerdPersistClient(persistConnectionString, persistUsername, persistPassword, "content", "shotstats", "stats");
     }
 }

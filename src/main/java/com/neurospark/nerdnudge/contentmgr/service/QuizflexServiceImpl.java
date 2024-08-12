@@ -11,7 +11,6 @@ import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -29,14 +28,22 @@ public class QuizflexServiceImpl implements QuizflexService {
     private final Collection configCollection;
     private final JsonObject dbConnections;
     private Random random;
+    private NerdPersistClient shotsStatsPersist;
+
+    private static final String LIKES_SUFFIX = "-Likes";
+    private static final String DISLIKES_SUFFIX = "-Dislikes";
+    private static final String FAVS_SUFFIX = "-Favs";
+    private static final String SHARES_SUFFIX = "-Shares";
 
     @Autowired
     public QuizflexServiceImpl(@Qualifier("nerdPersistClients") Map<String, NerdPersistClient> nerdPersistClients,
                                @Qualifier("configCollection") Collection configCollection,
-                               @Qualifier("dbConnections") JsonObject dbConnections) {
+                               @Qualifier("dbConnections") JsonObject dbConnections,
+                               @Qualifier("shotsStatsPersist") NerdPersistClient shotsStatsPersist) {
         this.nerdPersistClients = nerdPersistClients;
         this.configCollection = configCollection;
         this.dbConnections = dbConnections;
+        this.shotsStatsPersist = shotsStatsPersist;
     }
 
     @PostConstruct
@@ -102,13 +109,13 @@ public class QuizflexServiceImpl implements QuizflexService {
     }
 
     @Override
-    public List<QuizflexEntity> getQuizFlexes(String topic, String subtopic, int limit) {
+    public List<QuizflexEntity> getQuizFlexes(String topic, String subtopic, int limit) throws Exception {
         List<QuizflexEntity> responseEntities = new ArrayList<>();
         System.out.println("topic: " + topic + ", subtopic: " + subtopic + ", limit: " + limit);
         List<String> responseQuizflexIds = subtopic.equalsIgnoreCase("random") ? getRandomQuizflexIds(limit, topicwiseQuizIds.get(topic)) : getRandomQuizflexIds(limit, subtopicwiseQuizIds.get(topic).get(subtopic));
         for(int i = 0; i < responseQuizflexIds.size(); i ++) {
             System.out.println("current id: " + responseQuizflexIds.get(i));
-            responseEntities.add(contentMaster.get(responseQuizflexIds.get(i)));
+            responseEntities.add(getQuizFlex(responseQuizflexIds.get(i)));
         }
         return responseEntities;
     }
@@ -125,16 +132,21 @@ public class QuizflexServiceImpl implements QuizflexService {
         return random.nextInt(capacity);
     }
 
-    @Override
-    public QuizflexEntity getQuizFlexById(String id) throws Exception {
-        if(contentMaster.containsKey(id))
-            return contentMaster.get(id);
+    private QuizflexEntity getQuizFlex(String id) throws Exception {
+        if(! contentMaster.containsKey(id))
+            throw new Exception("Invalid Quizflex Id");
 
-        throw new Exception("Invalid Quizflex Id");
+        QuizflexEntity thisQuizFlex = contentMaster.get(id);
+        thisQuizFlex.setLikes(shotsStatsPersist.getCounter(id + LIKES_SUFFIX));
+        thisQuizFlex.setDislikes(shotsStatsPersist.getCounter(id + DISLIKES_SUFFIX));
+        thisQuizFlex.setFavorites(shotsStatsPersist.getCounter(id + FAVS_SUFFIX));
+        thisQuizFlex.setShares(shotsStatsPersist.getCounter(id + SHARES_SUFFIX));
+
+        return thisQuizFlex;
     }
 
-    /*@Scheduled(fixedRate = 1000)
-    public void refreshNow() {
-        System.out.println("Refreshed at: " + new Date());
-    }*/
+    @Override
+    public QuizflexEntity getQuizFlexById(String id) throws Exception {
+        return getQuizFlex(id);
+    }
 }
