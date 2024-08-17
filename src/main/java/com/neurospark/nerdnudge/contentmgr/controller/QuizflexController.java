@@ -1,5 +1,7 @@
 package com.neurospark.nerdnudge.contentmgr.controller;
 
+import com.google.gson.JsonParser;
+import com.neurospark.nerdnudge.contentmgr.dto.FavoriteQuizflexEntity;
 import com.neurospark.nerdnudge.contentmgr.dto.QuizflexEntity;
 import com.neurospark.nerdnudge.contentmgr.response.ApiResponse;
 import com.neurospark.nerdnudge.contentmgr.service.QuizflexService;
@@ -27,10 +29,19 @@ public class QuizflexController {
     }
 
     @GetMapping("/get/{id}")
-    public ApiResponse<QuizflexEntity> getQuizFlexById(@PathVariable(value = "id") String quizflexId) throws Exception {
+    public ApiResponse<QuizflexEntity> getQuizflexById(@PathVariable(value = "id") String quizflexId) throws Exception {
         long startTime = System.currentTimeMillis();
-        QuizflexEntity quizflexEntityResponse = quizflexService.getQuizFlexById(quizflexId);
+        QuizflexEntity quizflexEntityResponse = quizflexService.getQuizflexById(quizflexId);
         long endTime = System.currentTimeMillis();
         return new ApiResponse<>(Constants.SUCCESS, "Quizflex fetched successfully", quizflexEntityResponse, (endTime - startTime));
+    }
+
+    @PostMapping("/getFavoriteQuizflexesByIds")
+    public ApiResponse<List<FavoriteQuizflexEntity>> getFavoriteQuizflexesByIds(@RequestBody String idsJsonArray) throws Exception {
+        long startTime = System.currentTimeMillis();
+        com.google.gson.JsonArray idsArray = new JsonParser().parse(idsJsonArray).getAsJsonArray();
+        List<FavoriteQuizflexEntity> result = quizflexService.getFavoriteQuizflexesByIds(idsArray);
+        long endTime = System.currentTimeMillis();
+        return new ApiResponse<>(Constants.SUCCESS, "Favorite Quizflexes fetched successfully", result, (endTime - startTime));
     }
 }

@@ -6,6 +6,7 @@ import com.couchbase.client.java.json.JsonObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonParser;
+import com.neurospark.nerdnudge.contentmgr.dto.FavoriteQuizflexEntity;
 import com.neurospark.nerdnudge.contentmgr.dto.QuizflexEntity;
 import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
 import jakarta.annotation.PostConstruct;
@@ -47,13 +48,18 @@ public class QuizflexServiceImpl implements QuizflexService {
     }
 
     @PostConstruct
-    public void initialize() throws JsonProcessingException {
-        topicwiseQuizIds = new HashMap<>();
-        subtopicwiseQuizIds = new HashMap<>();
-        contentMaster = new HashMap<>();
+    public void initialize() {
+        try {
+            topicwiseQuizIds = new HashMap<>();
+            subtopicwiseQuizIds = new HashMap<>();
+            contentMaster = new HashMap<>();
 
-        random = new Random();
-        fetchDataFromPersist();
+            random = new Random();
+            fetchDataFromPersist();
+        } catch (Exception e) {
+            System.err.println("Error during initialization: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private void fetchDataFromPersist() throws JsonProcessingException {
@@ -146,7 +152,30 @@ public class QuizflexServiceImpl implements QuizflexService {
     }
 
     @Override
-    public QuizflexEntity getQuizFlexById(String id) throws Exception {
+    public QuizflexEntity getQuizflexById(String id) throws Exception {
         return getQuizFlex(id);
+    }
+
+    @Override
+    public List<FavoriteQuizflexEntity> getFavoriteQuizflexesByIds(com.google.gson.JsonArray ids) throws Exception {
+        List<FavoriteQuizflexEntity> result = new ArrayList<>();
+        for(int i = 0; i < ids.size(); i ++) {
+            result.add(getFavoriteQuizflex(ids.get(i).getAsString()));
+        }
+        return result;
+    }
+
+    private FavoriteQuizflexEntity getFavoriteQuizflex(String id) throws Exception {
+        if(! contentMaster.containsKey(id))
+            throw new Exception("Invalid Quizflex Id");
+
+        QuizflexEntity thisQuizFlex = contentMaster.get(id);
+        FavoriteQuizflexEntity favoriteQuizflexEntity = new FavoriteQuizflexEntity();
+        favoriteQuizflexEntity.setId(thisQuizFlex.getId());
+        favoriteQuizflexEntity.setTitle(thisQuizFlex.getTitle());
+        favoriteQuizflexEntity.setTopic_name(thisQuizFlex.getTopic_name());
+        favoriteQuizflexEntity.setSub_topic(thisQuizFlex.getSub_topic());
+        favoriteQuizflexEntity.setDifficulty_level(thisQuizFlex.getDifficulty_level());
+        return favoriteQuizflexEntity;
     }
 }
