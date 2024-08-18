@@ -157,25 +157,11 @@ public class QuizflexServiceImpl implements QuizflexService {
     }
 
     @Override
-    public List<FavoriteQuizflexEntity> getFavoriteQuizflexesByIds(com.google.gson.JsonArray ids) throws Exception {
-        List<FavoriteQuizflexEntity> result = new ArrayList<>();
+    public List<QuizflexEntity> getFavoriteQuizflexesByIds(com.google.gson.JsonArray ids) throws Exception {
+        List<QuizflexEntity> result = new ArrayList<>();
         for(int i = 0; i < ids.size(); i ++) {
-            result.add(getFavoriteQuizflex(ids.get(i).getAsString()));
+            result.add(getQuizFlex(ids.get(i).getAsString()));
         }
         return result;
-    }
-
-    private FavoriteQuizflexEntity getFavoriteQuizflex(String id) throws Exception {
-        if(! contentMaster.containsKey(id))
-            throw new Exception("Invalid Quizflex Id");
-
-        QuizflexEntity thisQuizFlex = contentMaster.get(id);
-        FavoriteQuizflexEntity favoriteQuizflexEntity = new FavoriteQuizflexEntity();
-        favoriteQuizflexEntity.setId(thisQuizFlex.getId());
-        favoriteQuizflexEntity.setTitle(thisQuizFlex.getTitle());
-        favoriteQuizflexEntity.setTopic_name(thisQuizFlex.getTopic_name());
-        favoriteQuizflexEntity.setSub_topic(thisQuizFlex.getSub_topic());
-        favoriteQuizflexEntity.setDifficulty_level(thisQuizFlex.getDifficulty_level());
-        return favoriteQuizflexEntity;
     }
 }

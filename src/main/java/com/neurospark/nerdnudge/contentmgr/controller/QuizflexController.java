@@ -37,10 +37,10 @@ public class QuizflexController {
     }
 
     @PostMapping("/getFavoriteQuizflexesByIds")
-    public ApiResponse<List<FavoriteQuizflexEntity>> getFavoriteQuizflexesByIds(@RequestBody String idsJsonArray) throws Exception {
+    public ApiResponse<List<QuizflexEntity>> getFavoriteQuizflexesByIds(@RequestBody String idsJsonArray) throws Exception {
         long startTime = System.currentTimeMillis();
         com.google.gson.JsonArray idsArray = new JsonParser().parse(idsJsonArray).getAsJsonArray();
-        List<FavoriteQuizflexEntity> result = quizflexService.getFavoriteQuizflexesByIds(idsArray);
+        List<QuizflexEntity> result = quizflexService.getFavoriteQuizflexesByIds(idsArray);
         long endTime = System.currentTimeMillis();
         return new ApiResponse<>(Constants.SUCCESS, "Favorite Quizflexes fetched successfully", result, (endTime - startTime));
     }

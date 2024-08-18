@@ -11,5 +11,5 @@ public interface QuizflexService {
 
     QuizflexEntity getQuizflexById(String id) throws Exception;
 
-    List<FavoriteQuizflexEntity> getFavoriteQuizflexesByIds(JsonArray ids) throws Exception;
+    List<QuizflexEntity> getFavoriteQuizflexesByIds(JsonArray ids) throws Exception;
 }
