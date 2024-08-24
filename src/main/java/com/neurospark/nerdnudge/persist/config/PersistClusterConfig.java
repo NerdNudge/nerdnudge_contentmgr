@@ -51,6 +51,11 @@ public class PersistClusterConfig {
         return cluster.bucket(persistConfigBucketName).scope(persistConfigScopeName).collection(persistConfigCollectionName);
     }
 
+    @Bean(name = "configPersist")
+    public NerdPersistClient configPersist() {
+        return new NerdPersistClient(persistConnectionString, persistUsername, persistPassword, persistConfigBucketName, persistConfigScopeName, persistConfigCollectionName);
+    }
+
     @Bean(name = "dbConnections")
     public JsonObject dbConnections(Collection configCollection) {
         return configCollection.get(persistDBConnectionsDocumentId).contentAsObject();

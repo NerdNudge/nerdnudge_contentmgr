@@ -6,7 +6,7 @@ import com.neurospark.nerdnudge.contentmgr.dto.TopicsEntity;
 import java.util.List;
 
 public interface TopicsService {
-    List<TopicsEntity> getTopics();
+    List<TopicsEntity> getTopics(String userId);
 
     List<SubtopicsEntity> getSubtopics(String topic);
 }
