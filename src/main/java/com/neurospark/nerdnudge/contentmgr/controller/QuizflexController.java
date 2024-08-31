@@ -1,7 +1,6 @@
 package com.neurospark.nerdnudge.contentmgr.controller;
 
 import com.google.gson.JsonParser;
-import com.neurospark.nerdnudge.contentmgr.dto.FavoriteQuizflexEntity;
 import com.neurospark.nerdnudge.contentmgr.dto.QuizflexEntity;
 import com.neurospark.nerdnudge.contentmgr.response.ApiResponse;
 import com.neurospark.nerdnudge.contentmgr.service.QuizflexService;

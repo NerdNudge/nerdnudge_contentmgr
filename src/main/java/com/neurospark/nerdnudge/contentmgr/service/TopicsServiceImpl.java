@@ -95,6 +95,7 @@ public class TopicsServiceImpl implements TopicsService{
 
             TopicsEntity topicsEntity = new TopicsEntity();
             topicsEntity.setTopicName(thisEntry.getValue().getAsString());
+            topicsEntity.setTopicCode(thisEntry.getKey());
             topicsEntity.setNumPeopleTaken((int) shotsStatsPersist.getCounter(thisEntry.getKey() + "_user_count"));
 
             topicsEntities.add(topicsEntity);
