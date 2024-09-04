@@ -1,10 +1,10 @@
 package com.neurospark.nerdnudge.contentmgr.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.neurospark.nerdnudge.contentmgr.dto.SubtopicsEntity;
 import com.neurospark.nerdnudge.contentmgr.dto.TopicsEntity;
+import com.neurospark.nerdnudge.contentmgr.dto.TopicsWithUserTopicStatsEntity;
 import com.neurospark.nerdnudge.contentmgr.dto.UserTopicsStatsEntity;
 import com.neurospark.nerdnudge.contentmgr.response.ApiResponse;
 import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
@@ -19,7 +19,7 @@ import java.util.*;
 @Service
 public class TopicsServiceImpl implements TopicsService{
 
-    private List<TopicsEntity> topicsEntities = null;
+    private Map<String, TopicsEntity> topicsEntities = null;
     private long lastFetchTime;
     private int retentionInMillis = 60 * 60 * 1000;
     private final NerdPersistClient configPersist;
@@ -38,13 +38,15 @@ public class TopicsServiceImpl implements TopicsService{
     }
 
     @Override
-    public List<TopicsEntity> getTopics(String userId) {
-        List<TopicsEntity> topicsEntity = getTopicsFromCache();
-        updateUserStats(topicsEntity, userId);
-        return topicsEntity;
+    public TopicsWithUserTopicStatsEntity getTopics(String userId) {
+        TopicsWithUserTopicStatsEntity topicsWithUserTopicStatsEntity = new TopicsWithUserTopicStatsEntity();
+        topicsWithUserTopicStatsEntity.setTopics(getTopicsFromCache());
+        topicsWithUserTopicStatsEntity.setUserStats(getUserStats(userId));
+
+        return topicsWithUserTopicStatsEntity;
     }
 
-    private void updateUserStats(List<TopicsEntity> topicsEntity, String userId) {
+    private Map<String, UserTopicsStatsEntity> getUserStats(String userId) {
         RestTemplate restTemplate = new RestTemplate();
         System.out.println("Now trying to call api and fetch user topic stats.");
         Map<String, UserTopicsStatsEntity> userTopicsStatsEntities = null;
@@ -62,31 +64,11 @@ public class TopicsServiceImpl implements TopicsService{
             e.printStackTrace();
         }
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            for (int i = 0; i < topicsEntity.size(); i++) {
-                TopicsEntity thisTopicEntity = topicsEntity.get(i);
-                UserTopicsStatsEntity thisUserTopicStats = null;
-                if (userTopicsStatsEntities != null && userTopicsStatsEntities.containsKey(thisTopicEntity.getTopicName())) {
-                    Object statsObject = userTopicsStatsEntities.get(thisTopicEntity.getTopicName());
-                    if (statsObject instanceof LinkedHashMap) {
-                        thisUserTopicStats = objectMapper.convertValue(statsObject, UserTopicsStatsEntity.class);
-                    } else if (statsObject instanceof UserTopicsStatsEntity) {
-                        thisUserTopicStats = (UserTopicsStatsEntity) statsObject;
-                    }
-
-                    thisTopicEntity.setLastTakenByUser(thisUserTopicStats.getLastTaken());
-                    thisTopicEntity.setUserScoreIndicator(thisUserTopicStats.getPersonalScoreIndicator());
-                }
-            }
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        return userTopicsStatsEntities;
     }
 
     private void updateTopicsCache() {
-        topicsEntities = new ArrayList<>();
+        topicsEntities = new HashMap<>();
         topicCodeToTopicNameMapping = configPersist.get("collection_topic_mapping");
         topicNameToTopicCodeMapping = new JsonObject();
         Iterator<Map.Entry<String, JsonElement>> topicsIterator = topicCodeToTopicNameMapping.entrySet().iterator();
@@ -95,19 +77,19 @@ public class TopicsServiceImpl implements TopicsService{
 
             TopicsEntity topicsEntity = new TopicsEntity();
             topicsEntity.setTopicName(thisEntry.getValue().getAsString());
-            topicsEntity.setTopicCode(thisEntry.getKey());
             topicsEntity.setNumPeopleTaken((int) shotsStatsPersist.getCounter(thisEntry.getKey() + "_user_count"));
 
-            topicsEntities.add(topicsEntity);
+            topicsEntities.put(thisEntry.getKey(), topicsEntity);
             topicNameToTopicCodeMapping.addProperty(thisEntry.getValue().getAsString(), thisEntry.getKey());
         }
+        lastFetchTime = System.currentTimeMillis();
 
         System.out.println(topicCodeToTopicNameMapping);
         System.out.println(topicNameToTopicCodeMapping);
     }
 
 
-    private List<TopicsEntity> getTopicsFromCache() {
+    private Map<String, TopicsEntity> getTopicsFromCache() {
         if(topicsEntities == null || ! isWithinRetentionTime())
             updateTopicsCache();
 

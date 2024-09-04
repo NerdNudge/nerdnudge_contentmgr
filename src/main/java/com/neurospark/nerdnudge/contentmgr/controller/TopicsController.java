@@ -2,6 +2,7 @@ package com.neurospark.nerdnudge.contentmgr.controller;
 
 import com.neurospark.nerdnudge.contentmgr.dto.SubtopicsEntity;
 import com.neurospark.nerdnudge.contentmgr.dto.TopicsEntity;
+import com.neurospark.nerdnudge.contentmgr.dto.TopicsWithUserTopicStatsEntity;
 import com.neurospark.nerdnudge.contentmgr.response.ApiResponse;
 import com.neurospark.nerdnudge.contentmgr.service.TopicsService;
 import com.neurospark.nerdnudge.contentmgr.utils.Constants;
@@ -20,12 +21,12 @@ public class TopicsController {
     TopicsService topicsService;
 
     @GetMapping("/getall/{id}")
-    public ApiResponse<List<TopicsEntity>> getTopics(@PathVariable(value = "id") String userId) {
+    public ApiResponse<TopicsWithUserTopicStatsEntity> getTopics(@PathVariable(value = "id") String userId) {
         System.out.println("Getting topics data for user: " + userId);
         long startTime = System.currentTimeMillis();
-        List<TopicsEntity> topicsEntityList = topicsService.getTopics(userId);
+        TopicsWithUserTopicStatsEntity topicsWithUserStatsEntityList = topicsService.getTopics(userId);
         long endTime = System.currentTimeMillis();
-        return new ApiResponse<>(Constants.SUCCESS, "Topics fetched successfully", topicsEntityList, (endTime - startTime));
+        return new ApiResponse<>(Constants.SUCCESS, "Topics fetched successfully", topicsWithUserStatsEntityList, (endTime - startTime));
     }
 
     @GetMapping("/getsubtopics/{topic}")
