@@ -7,6 +7,7 @@ import com.neurospark.nerdnudge.contentmgr.response.ApiResponse;
 import com.neurospark.nerdnudge.contentmgr.service.TopicsService;
 import com.neurospark.nerdnudge.contentmgr.utils.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,7 +27,7 @@ public class TopicsController {
         long startTime = System.currentTimeMillis();
         TopicsWithUserTopicStatsEntity topicsWithUserStatsEntityList = topicsService.getTopics(userId);
         long endTime = System.currentTimeMillis();
-        return new ApiResponse<>(Constants.SUCCESS, "Topics fetched successfully", topicsWithUserStatsEntityList, (endTime - startTime));
+        return new ApiResponse<>(Constants.SUCCESS, "Topics fetched successfully", topicsWithUserStatsEntityList, (endTime - startTime), HttpStatus.OK.value());
     }
 
     @GetMapping("/getsubtopics/{topic}")
@@ -35,6 +36,6 @@ public class TopicsController {
         long startTime = System.currentTimeMillis();
         List<SubtopicsEntity> subtopicsEntityList = topicsService.getSubtopics(topic);
         long endTime = System.currentTimeMillis();
-        return new ApiResponse<>(Constants.SUCCESS, "Sub-topics fetched successfully", subtopicsEntityList, (endTime - startTime));
+        return new ApiResponse<>(Constants.SUCCESS, "Sub-topics fetched successfully", subtopicsEntityList, (endTime - startTime), HttpStatus.OK.value());
     }
 }
