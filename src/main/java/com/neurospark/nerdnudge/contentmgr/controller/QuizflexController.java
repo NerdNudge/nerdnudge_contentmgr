@@ -1,6 +1,5 @@
 package com.neurospark.nerdnudge.contentmgr.controller;
 
-import com.couchbase.client.core.deps.com.google.api.Http;
 import com.google.gson.JsonParser;
 import com.neurospark.nerdnudge.contentmgr.dto.QuizflexEntity;
 import com.neurospark.nerdnudge.contentmgr.response.ApiResponse;
@@ -8,10 +7,7 @@ import com.neurospark.nerdnudge.contentmgr.service.QuizflexService;
 import com.neurospark.nerdnudge.contentmgr.utils.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 
@@ -47,5 +43,10 @@ public class QuizflexController {
         List<QuizflexEntity> result = quizflexService.getFavoriteQuizflexesByIds(idsArray);
         long endTime = System.currentTimeMillis();
         return new ApiResponse<>(Constants.SUCCESS, "Favorite Quizflexes fetched successfully", result, (endTime - startTime), HttpStatus.OK.value());
+    }
+
+    @GetMapping("/health")
+    public ApiResponse<String> healthCheck() {
+        return new ApiResponse<>("SUCCESS", "Health Check Pass", "SUCCESS", 0, HttpStatus.OK.value());
     }
 }
