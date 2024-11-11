@@ -28,6 +28,17 @@ public class QuizflexController {
         return new ApiResponse<>(Constants.SUCCESS, "Quizflexes fetched successfully", quizflexes, (endTime - startTime), HttpStatus.OK.value());
     }
 
+    @GetMapping("/getRealworldChallenges")
+    public ApiResponse<List<QuizflexEntity>> getRealworldChallenges(
+            @RequestParam String topic,
+            @RequestParam String subtopic,
+            @RequestParam int limit) throws Exception {
+        long startTime = System.currentTimeMillis();
+        List<QuizflexEntity> realworldChallenges = quizflexService.getRealworldChallenge(topic, subtopic, limit);
+        long endTime = System.currentTimeMillis();
+        return new ApiResponse<>(Constants.SUCCESS, "RWC fetched successfully", realworldChallenges, (endTime - startTime), HttpStatus.OK.value());
+    }
+
     @GetMapping("/get/{id}")
     public ApiResponse<QuizflexEntity> getQuizflexById(@PathVariable(value = "id") String quizflexId) throws Exception {
         long startTime = System.currentTimeMillis();
