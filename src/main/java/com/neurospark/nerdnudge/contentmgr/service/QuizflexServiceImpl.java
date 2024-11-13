@@ -51,6 +51,7 @@ public class QuizflexServiceImpl implements QuizflexService {
     public void initialize() {
         try {
             topicwiseQuizIds = new HashMap<>();
+            topicwiseRWCIds = new HashMap<>();
             subtopicwiseQuizIds = new HashMap<>();
             contentMaster = new HashMap<>();
 
@@ -200,7 +201,7 @@ public class QuizflexServiceImpl implements QuizflexService {
 
     private QuizflexEntity getQuizFlex(String id) throws Exception {
         if(! contentMaster.containsKey(id))
-            throw new Exception("Invalid Quizflex Id");
+            return null;
 
         QuizflexEntity thisQuizFlex = contentMaster.get(id);
         thisQuizFlex.setLikes(shotsStatsPersist.getCounter(id + LIKES_SUFFIX));
@@ -220,7 +221,9 @@ public class QuizflexServiceImpl implements QuizflexService {
     public List<QuizflexEntity> getFavoriteQuizflexesByIds(com.google.gson.JsonArray ids) throws Exception {
         List<QuizflexEntity> result = new ArrayList<>();
         for(int i = 0; i < ids.size(); i ++) {
-            result.add(getQuizFlex(ids.get(i).getAsString()));
+            QuizflexEntity thisResult = getQuizFlex(ids.get(i).getAsString());
+            if(thisResult != null)
+                result.add(thisResult);
         }
         return result;
     }
