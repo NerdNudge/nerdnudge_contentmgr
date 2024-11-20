@@ -20,6 +20,7 @@ import java.util.*;
 public class TopicsServiceImpl implements TopicsService{
 
     private Map<String, TopicsEntity> topicsEntities = null;
+    private Map<String, List<SubtopicsEntity>> subtopicEntities = null;
     private long lastFetchTime;
     private int retentionInMillis = 60 * 60 * 1000;
     private final NerdPersistClient configPersist;
@@ -34,6 +35,7 @@ public class TopicsServiceImpl implements TopicsService{
                              @Qualifier("shotsStatsPersist") NerdPersistClient shotsStatsPersist) {
         this.configPersist = configPersist;
         this.shotsStatsPersist = shotsStatsPersist;
+        subtopicEntities = new HashMap<>();
         updateTopicsCache();
     }
 
@@ -104,8 +106,13 @@ public class TopicsServiceImpl implements TopicsService{
 
     @Override
     public List<SubtopicsEntity> getSubtopics(String topic) {
+        if(subtopicEntities.containsKey(topic)) {
+            System.out.println("Returning subtopics from cache for topic: " + topic);
+            return subtopicEntities.get(topic);
+        }
+
         System.out.println("Fetching subtopics for: " + topicNameToTopicCodeMapping.get(topic).getAsString());
-        List<SubtopicsEntity> subtopicsEntities = new ArrayList<>();
+        List<SubtopicsEntity> subtopicEntitiesList = new ArrayList<>();
         JsonObject subtopicsObject = configPersist.get(topicNameToTopicCodeMapping.get(topic).getAsString() + "_subtopics");
         Iterator<Map.Entry<String, JsonElement>> subtopicsIterator = subtopicsObject.entrySet().iterator();
         while(subtopicsIterator.hasNext()) {
@@ -116,9 +123,10 @@ public class TopicsServiceImpl implements TopicsService{
                 currentSubtopic.setSubtopicName(thisEntry.getKey());
                 currentSubtopic.setDescription(value);
 
-                subtopicsEntities.add(currentSubtopic);
+                subtopicEntitiesList.add(currentSubtopic);
             }
         }
-        return subtopicsEntities;
+        subtopicEntities.put(topic, subtopicEntitiesList);
+        return subtopicEntitiesList;
     }
 }
