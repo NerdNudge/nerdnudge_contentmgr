@@ -21,6 +21,7 @@ public class TopicsServiceImpl implements TopicsService{
 
     private Map<String, TopicsEntity> topicsEntities = null;
     private Map<String, List<SubtopicsEntity>> subtopicEntities = null;
+    private Map<String, String> topicsConfigCache;
     private long lastFetchTime;
     private int retentionInMillis = 60 * 60 * 1000;
     private final NerdPersistClient configPersist;
@@ -43,6 +44,7 @@ public class TopicsServiceImpl implements TopicsService{
     public TopicsWithUserTopicStatsEntity getTopics(String userId) {
         TopicsWithUserTopicStatsEntity topicsWithUserTopicStatsEntity = new TopicsWithUserTopicStatsEntity();
         topicsWithUserTopicStatsEntity.setTopics(getTopicsFromCache());
+        topicsWithUserTopicStatsEntity.setConfig(getTopicsConfigFromCache());
         topicsWithUserTopicStatsEntity.setUserStats(getUserStats(userId));
 
         return topicsWithUserTopicStatsEntity;
@@ -69,6 +71,14 @@ public class TopicsServiceImpl implements TopicsService{
         return userTopicsStatsEntities;
     }
 
+    private void updateTopicsConfigCache() {
+        topicsConfigCache = new HashMap<>();
+        JsonObject collectionMapping = configPersist.get("nerd_config");
+        topicsConfigCache.put("rwcDailyQuizLimit", collectionMapping.get("rwcDailyQuizLimit").getAsString());
+        topicsConfigCache.put("rwcDailyQuizTime", collectionMapping.get("rwcDailyQuizTime").getAsString());
+        System.out.println(topicsConfigCache);
+    }
+
     private void updateTopicsCache() {
         topicsEntities = new HashMap<>();
         topicCodeToTopicNameMapping = configPersist.get("collection_topic_mapping");
@@ -92,10 +102,19 @@ public class TopicsServiceImpl implements TopicsService{
 
 
     private Map<String, TopicsEntity> getTopicsFromCache() {
-        if(topicsEntities == null || ! isWithinRetentionTime())
+        if(topicsEntities == null || ! isWithinRetentionTime()) {
+            updateTopicsConfigCache();
             updateTopicsCache();
+        }
 
         return topicsEntities;
+    }
+
+    private Map<String, String> getTopicsConfigFromCache() {
+        if(topicsConfigCache == null || ! isWithinRetentionTime())
+            updateTopicsConfigCache();
+
+        return topicsConfigCache;
     }
 
     private boolean isWithinRetentionTime() {

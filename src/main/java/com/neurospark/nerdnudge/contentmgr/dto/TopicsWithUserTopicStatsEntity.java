@@ -8,4 +8,5 @@ import java.util.Map;
 public class TopicsWithUserTopicStatsEntity {
     Map<String, TopicsEntity> topics;
     Map<String, UserTopicsStatsEntity> userStats;
+    Map<String, String> config;
 }
