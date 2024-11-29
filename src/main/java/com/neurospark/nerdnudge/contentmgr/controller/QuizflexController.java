@@ -5,7 +5,6 @@ import com.neurospark.nerdnudge.contentmgr.dto.QuizflexEntity;
 import com.neurospark.nerdnudge.contentmgr.response.ApiResponse;
 import com.neurospark.nerdnudge.contentmgr.service.QuizflexService;
 import com.neurospark.nerdnudge.contentmgr.utils.Constants;
-import com.neurospark.nerdnudge.metrics.logging.NerdLogger;
 import com.neurospark.nerdnudge.metrics.metrics.Metric;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +30,6 @@ public class QuizflexController {
         List<QuizflexEntity> quizflexes = quizflexService.getQuizFlexes(topic, subtopic, limit);
         long endTime = System.currentTimeMillis();
         new Metric.MetricBuilder().setName("quizFetch").setUnit(Metric.Unit.MILLISECONDS).setValue((endTime - startTime)).build();
-
         return new ApiResponse<>(Constants.SUCCESS, "Quizflexes fetched successfully", quizflexes, (endTime - startTime), HttpStatus.OK.value());
     }
 

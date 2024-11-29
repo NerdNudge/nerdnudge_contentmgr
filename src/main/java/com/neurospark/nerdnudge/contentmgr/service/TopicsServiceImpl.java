@@ -8,6 +8,7 @@ import com.neurospark.nerdnudge.contentmgr.dto.TopicsWithUserTopicStatsEntity;
 import com.neurospark.nerdnudge.contentmgr.dto.UserTopicsStatsEntity;
 import com.neurospark.nerdnudge.contentmgr.response.ApiResponse;
 import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
+@Slf4j
 @Service
 public class TopicsServiceImpl implements TopicsService{
 
@@ -51,8 +53,8 @@ public class TopicsServiceImpl implements TopicsService{
     }
 
     private Map<String, UserTopicsStatsEntity> getUserStats(String userId) {
+        log.info("Fetching user topic stats for: {}", userId);
         RestTemplate restTemplate = new RestTemplate();
-        System.out.println("Now trying to call api and fetch user topic stats.");
         Map<String, UserTopicsStatsEntity> userTopicsStatsEntities = null;
         String userTopicStatsPath = "/getUserTopicStats/" + userId;
         try {
@@ -61,10 +63,10 @@ public class TopicsServiceImpl implements TopicsService{
                 ApiResponse apiResponse = response.getBody();
                 userTopicsStatsEntities = (Map<String, UserTopicsStatsEntity>) apiResponse.getData();
             } else {
-                System.out.println("Failed to retrieve data.");
+                log.warn("Failed to retrieve user topic stats data.");
             }
         } catch (Exception e) {
-            System.out.println("Exception while calling API");
+            log.error("Exception while calling user topic stats API");
             e.printStackTrace();
         }
 
@@ -76,7 +78,7 @@ public class TopicsServiceImpl implements TopicsService{
         JsonObject collectionMapping = configPersist.get("nerd_config");
         topicsConfigCache.put("rwcDailyQuizLimit", collectionMapping.get("rwcDailyQuizLimit").getAsString());
         topicsConfigCache.put("rwcDailyQuizTime", collectionMapping.get("rwcDailyQuizTime").getAsString());
-        System.out.println(topicsConfigCache);
+        log.info("topics config cache: {}", topicsConfigCache);
     }
 
     private void updateTopicsCache() {
@@ -96,8 +98,8 @@ public class TopicsServiceImpl implements TopicsService{
         }
         lastFetchTime = System.currentTimeMillis();
 
-        System.out.println(topicCodeToTopicNameMapping);
-        System.out.println(topicNameToTopicCodeMapping);
+        log.info("Topic Code to Topic Name Mapping: {}", topicCodeToTopicNameMapping);
+        log.info("Topic Name to Topic Code Mapping: {}", topicNameToTopicCodeMapping);
     }
 
 
@@ -126,11 +128,11 @@ public class TopicsServiceImpl implements TopicsService{
     @Override
     public List<SubtopicsEntity> getSubtopics(String topic) {
         if(subtopicEntities.containsKey(topic)) {
-            System.out.println("Returning subtopics from cache for topic: " + topic);
+            log.info("Returning subtopics from cache for topic: {}", topic);
             return subtopicEntities.get(topic);
         }
 
-        System.out.println("Fetching subtopics for: " + topicNameToTopicCodeMapping.get(topic).getAsString());
+        log.info("Fetching subtopics for topic: {}", topicNameToTopicCodeMapping.get(topic).getAsString());
         List<SubtopicsEntity> subtopicEntitiesList = new ArrayList<>();
         JsonObject subtopicsObject = configPersist.get(topicNameToTopicCodeMapping.get(topic).getAsString() + "_subtopics");
         Iterator<Map.Entry<String, JsonElement>> subtopicsIterator = subtopicsObject.entrySet().iterator();

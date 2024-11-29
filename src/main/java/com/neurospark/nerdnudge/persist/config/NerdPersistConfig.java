@@ -16,9 +16,7 @@ import java.util.Map;
 @Configuration
 @Component
 public class NerdPersistConfig {
-
     private final PersistClusterConfig persistClusterConfig;
-
     private final JsonParser jsonParser = new JsonParser();
 
     @Autowired

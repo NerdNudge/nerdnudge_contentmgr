@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class PersistClusterConfig {
-
     @Getter
     @Value("${persist.connection-string}")
     private String persistConnectionString;

@@ -9,12 +9,14 @@ import com.google.gson.JsonParser;
 import com.neurospark.nerdnudge.contentmgr.dto.QuizflexEntity;
 import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+@Slf4j
 @Service
 public class QuizflexServiceImpl implements QuizflexService {
 
@@ -59,7 +61,7 @@ public class QuizflexServiceImpl implements QuizflexService {
             fetchQuizflexDataFromPersist();
             fetchRWCDataFromPersist();
         } catch (Exception e) {
-            System.err.println("Error during initialization: " + e.getMessage());
+            log.error("Error during initialization: {}", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -85,15 +87,15 @@ public class QuizflexServiceImpl implements QuizflexService {
                 com.google.gson.JsonArray currentCollections = currentScope.get("collections").getAsJsonArray();
                 for (int k = 0; k < currentCollections.size(); k++) {
                     String thisCollectionName = currentCollections.get(k).getAsString();
-                    String clientId = thisBucketName + "." + thisScopeName + "." + thisCollectionName;
-                    NerdPersistClient thisPersistClient = nerdPersistClients.get(clientId);
+                    String schemaId = thisBucketName + "." + thisScopeName + "." + thisCollectionName;
+                    NerdPersistClient thisPersistClient = nerdPersistClients.get(schemaId);
                     if (thisPersistClient == null) {
-                        System.out.println("Client id is null: " + clientId);
+                        log.warn("Schema id does not exist: {}", schemaId);
                         continue;
                     }
 
                     JsonObject collectionsToTopicMappingDoc = configCollection.get("collection_topic_mapping").contentAsObject();
-                    String query = "SELECT * FROM `" + clientId.replace(".", "`.`") + "` WHERE topic_name = '" + collectionsToTopicMappingDoc.getString(thisCollectionName) + "'";
+                    String query = "SELECT * FROM `" + schemaId.replace(".", "`.`") + "` WHERE topic_name = '" + collectionsToTopicMappingDoc.getString(thisCollectionName) + "'";
                     List<com.google.gson.JsonObject> allDocuments = thisPersistClient.getDocumentsByQuery(query, thisCollectionName);
                     for (int doc = 0; doc < allDocuments.size(); doc++) {
                         com.google.gson.JsonObject thisQuizDocument = allDocuments.get(doc);
@@ -108,9 +110,9 @@ public class QuizflexServiceImpl implements QuizflexService {
                         subtopicList.add(quizflexEntity.getId());
                         subtopicMap.put(quizflexEntity.getSub_topic(), subtopicList);
                         subtopicwiseQuizIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), subtopicMap);
-                        System.out.println("Added topic: " + collectionsToTopicMappingDoc.getString(thisCollectionName) + ", sub topic: " + quizflexEntity.getSub_topic());
+                        log.info("Added topic: {}, sub topic: {}", collectionsToTopicMappingDoc.getString(thisCollectionName), quizflexEntity.getSub_topic());
                     }
-                    System.out.println("Loaded: " + allDocuments.size() +" documents for: " + clientId);
+                    log.info("Loaded: {} documents for: {}", allDocuments.size(), schemaId);
                 }
             }
         }
@@ -137,15 +139,15 @@ public class QuizflexServiceImpl implements QuizflexService {
                 com.google.gson.JsonArray currentCollections = currentScope.get("collections").getAsJsonArray();
                 for (int k = 0; k < currentCollections.size(); k++) {
                     String thisCollectionName = currentCollections.get(k).getAsString();
-                    String clientId = thisBucketName + "." + thisScopeName + "." + thisCollectionName;
-                    NerdPersistClient thisPersistClient = nerdPersistClients.get(clientId);
+                    String schemaId = thisBucketName + "." + thisScopeName + "." + thisCollectionName;
+                    NerdPersistClient thisPersistClient = nerdPersistClients.get(schemaId);
                     if (thisPersistClient == null) {
-                        System.out.println("Client id is null: " + clientId);
+                        log.error("Schema id is null: {}", schemaId);
                         continue;
                     }
 
                     JsonObject collectionsToTopicMappingDoc = configCollection.get("collection_topic_mapping").contentAsObject();
-                    String query = "SELECT * FROM `" + clientId.replace(".", "`.`") + "` WHERE topic_name = '" + collectionsToTopicMappingDoc.getString(thisCollectionName) + "'";
+                    String query = "SELECT * FROM `" + schemaId.replace(".", "`.`") + "` WHERE topic_name = '" + collectionsToTopicMappingDoc.getString(thisCollectionName) + "'";
                     List<com.google.gson.JsonObject> allDocuments = thisPersistClient.getDocumentsByQuery(query, thisCollectionName);
                     for (int doc = 0; doc < allDocuments.size(); doc++) {
                         com.google.gson.JsonObject thisQuizDocument = allDocuments.get(doc);
@@ -155,9 +157,9 @@ public class QuizflexServiceImpl implements QuizflexService {
                         currentTopicWiseIds.add(quizflexEntity.getId());
                         topicwiseRWCIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), currentTopicWiseIds);
 
-                        System.out.println("RWC: Added topic: " + collectionsToTopicMappingDoc.getString(thisCollectionName) + ", sub topic: " + quizflexEntity.getSub_topic());
+                        log.info("RWC: Added topic: {}, sub topic: {}", collectionsToTopicMappingDoc.getString(thisCollectionName), quizflexEntity.getSub_topic());
                     }
-                    System.out.println("Loaded: " + allDocuments.size() +" documents for: " + clientId);
+                    log.info("RWC: Loaded: {} documents for: {}", allDocuments.size(), schemaId);
                 }
             }
         }
@@ -166,10 +168,10 @@ public class QuizflexServiceImpl implements QuizflexService {
     @Override
     public List<QuizflexEntity> getQuizFlexes(String topic, String subtopic, int limit) throws Exception {
         List<QuizflexEntity> responseEntities = new ArrayList<>();
-        System.out.println("topic: " + topic + ", subtopic: " + subtopic + ", limit: " + limit);
+
+        log.info("Getting Quizflex: topic: {}, subtopic: {}, limit: {}", topic, subtopic, limit);
         List<String> responseQuizflexIds = subtopic.equalsIgnoreCase("random") ? getRandomQuizflexIds(limit, topicwiseQuizIds.get(topic)) : getRandomQuizflexIds(limit, subtopicwiseQuizIds.get(topic).get(subtopic));
         for(int i = 0; i < responseQuizflexIds.size(); i ++) {
-            System.out.println("current id: " + responseQuizflexIds.get(i));
             responseEntities.add(getQuizFlex(responseQuizflexIds.get(i)));
         }
         return responseEntities;
@@ -178,10 +180,9 @@ public class QuizflexServiceImpl implements QuizflexService {
     @Override
     public List<QuizflexEntity> getRealworldChallenge(String topic, String subtopic, int limit) throws Exception {
         List<QuizflexEntity> responseEntities = new ArrayList<>();
-        System.out.println("RWC: topic: " + topic + ", subtopic: " + subtopic + ", limit: " + limit);
+        log.info("Getting RWC: topic: {}, subtopic: {}, limit: {}", topic, subtopic, limit);
         List<String> responseQuizflexIds = getRandomQuizflexIds(limit, topicwiseRWCIds.get(topic));
         for(int i = 0; i < responseQuizflexIds.size(); i ++) {
-            System.out.println("current id: " + responseQuizflexIds.get(i));
             responseEntities.add(getQuizFlex(responseQuizflexIds.get(i)));
         }
         return responseEntities;

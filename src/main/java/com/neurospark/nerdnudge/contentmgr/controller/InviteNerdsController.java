@@ -1,5 +1,7 @@
 package com.neurospark.nerdnudge.contentmgr.controller;
 
+import com.neurospark.nerdnudge.metrics.metrics.Metric;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -8,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/nerdnudge/invitenerds")
 public class InviteNerdsController {
@@ -17,6 +20,7 @@ public class InviteNerdsController {
 
     @GetMapping("/invite")
     public ResponseEntity<Void> redirectToStore(@RequestHeader(value = "User-Agent", defaultValue = "") String userAgent) {
+        long startTime = System.currentTimeMillis();
         String redirectUrl;
 
         if (userAgent.toLowerCase().contains("android")) {
@@ -29,7 +33,10 @@ public class InviteNerdsController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Location", redirectUrl);
-        System.out.println("Redirecting to: " + redirectUrl);
+
+        log.info("Redirecting to: {}", redirectUrl);
+        long endTime = System.currentTimeMillis();
+        new Metric.MetricBuilder().setName("quizFetch").setUnit(Metric.Unit.MILLISECONDS).setValue((endTime - startTime)).build();
         return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 }
