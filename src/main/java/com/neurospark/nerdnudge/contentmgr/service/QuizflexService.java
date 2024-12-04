@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface QuizflexService {
     List<QuizflexEntity> getQuizFlexes(String topic, String subtopic, int limit) throws Exception;
+    List<QuizflexEntity> getNerdShots(String topic, String subtopic, int limit) throws Exception;
     List<QuizflexEntity> getRealworldChallenge(String topic, String subtopic, int limit) throws Exception;
 
     QuizflexEntity getQuizflexById(String id) throws Exception;

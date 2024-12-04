@@ -178,6 +178,29 @@ public class QuizflexServiceImpl implements QuizflexService {
     }
 
     @Override
+    public List<QuizflexEntity> getNerdShots(String topic, String subtopic, int limit) throws Exception {
+        List<QuizflexEntity> responseEntities = new ArrayList<>();
+
+        log.info("Getting NerdShot: topic: {}, subtopic: {}, limit: {}", topic, subtopic, limit);
+        List<String> responseQuizflexIds = subtopic.equalsIgnoreCase("random") ? getRandomQuizflexIds(limit, topicwiseQuizIds.get(topic)) : getRandomQuizflexIds(limit, subtopicwiseQuizIds.get(topic).get(subtopic));
+        for(int i = 0; i < responseQuizflexIds.size(); i ++) {
+            QuizflexEntity thisEntity = getQuizFlex(responseQuizflexIds.get(i));
+            String titleAndQuestion = (thisEntity.getTitle() + " " + thisEntity.getQuestion()).toLowerCase();
+            if(titleAndQuestion.contains("code") || titleAndQuestion.contains("coding"))
+                continue;
+
+            responseEntities.add(thisEntity);
+        }
+        if(responseEntities.isEmpty()){
+            log.warn("Empty entity, probably due to all shots having 'code' or 'coding' strings, trying again.");
+            return getNerdShots(topic, subtopic, limit);
+        }
+        else {
+            return responseEntities;
+        }
+    }
+
+    @Override
     public List<QuizflexEntity> getRealworldChallenge(String topic, String subtopic, int limit) throws Exception {
         List<QuizflexEntity> responseEntities = new ArrayList<>();
         log.info("Getting RWC: topic: {}, subtopic: {}, limit: {}", topic, subtopic, limit);

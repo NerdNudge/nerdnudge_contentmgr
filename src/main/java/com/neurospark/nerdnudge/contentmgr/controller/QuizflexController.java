@@ -33,6 +33,18 @@ public class QuizflexController {
         return new ApiResponse<>(Constants.SUCCESS, "Quizflexes fetched successfully", quizflexes, (endTime - startTime), HttpStatus.OK.value());
     }
 
+    @GetMapping("/getNerdShots")
+    public ApiResponse<List<QuizflexEntity>> getNerdShots(
+            @RequestParam String topic,
+            @RequestParam String subtopic,
+            @RequestParam int limit) throws Exception {
+        long startTime = System.currentTimeMillis();
+        List<QuizflexEntity> nerdShots = quizflexService.getNerdShots(topic, subtopic, limit);
+        long endTime = System.currentTimeMillis();
+        new Metric.MetricBuilder().setName("quizFetch").setUnit(Metric.Unit.MILLISECONDS).setValue((endTime - startTime)).build();
+        return new ApiResponse<>(Constants.SUCCESS, "Nerd Shots fetched successfully", nerdShots, (endTime - startTime), HttpStatus.OK.value());
+    }
+
     @GetMapping("/getRealworldChallenges")
     public ApiResponse<List<QuizflexEntity>> getRealworldChallenges(
             @RequestParam String topic,
