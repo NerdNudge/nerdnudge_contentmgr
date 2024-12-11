@@ -3,6 +3,7 @@ package com.neurospark.nerdnudge.contentmgr.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Data
@@ -10,15 +11,15 @@ import java.util.Map;
 public class QuizflexEntity {
     String id;
     String title;
-    String question;
-    Map<String, String> possible_answers;
-    Map<String, Double> answer_percentages;
-    String right_answer;
+    String question = "";
+    Map<String, String> possible_answers = new HashMap<>();
+    Map<String, Double> answer_percentages = new HashMap<>();
+    String right_answer = "";
     String topic_name;
     String sub_topic;
     String description_and_explanation;
-    String difficulty_level;
-    int time_limit_secs;
+    String difficulty_level = "easy";
+    int time_limit_secs = 60;
     String pro_tip;
     String fun_fact;
 

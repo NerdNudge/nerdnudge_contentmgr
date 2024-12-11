@@ -34,11 +34,11 @@ public class TopicsController {
         return new ApiResponse<>(Constants.SUCCESS, "Topics fetched successfully", topicsWithUserStatsEntityList, (endTime - startTime), HttpStatus.OK.value());
     }
 
-    @GetMapping("/getsubtopics/{topic}")
-    public ApiResponse<List<SubtopicsEntity>> getSubtopics(@PathVariable(value = "topic") String topic) {
-        log.info("Fetching sub topics for topic: {}", topic);
+    @GetMapping("/getsubtopics/{topic}/{id}")
+    public ApiResponse<SubtopicsEntity> getSubtopics(@PathVariable(value = "topic") String topic, @PathVariable(value = "id") String userId) {
+        log.info("Fetching sub topics for topic: {}, for user: {}", topic, userId);
         long startTime = System.currentTimeMillis();
-        List<SubtopicsEntity> subtopicsEntityList = topicsService.getSubtopics(topic);
+        SubtopicsEntity subtopicsEntityList = topicsService.getSubtopics(topic, userId);
         long endTime = System.currentTimeMillis();
         new Metric.MetricBuilder().setName("subtopicsFetch").setUnit(Metric.Unit.MILLISECONDS).setValue((endTime - startTime)).build();
         return new ApiResponse<>(Constants.SUCCESS, "Sub-topics fetched successfully", subtopicsEntityList, (endTime - startTime), HttpStatus.OK.value());

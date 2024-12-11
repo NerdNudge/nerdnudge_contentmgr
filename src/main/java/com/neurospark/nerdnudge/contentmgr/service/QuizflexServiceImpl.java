@@ -22,8 +22,10 @@ public class QuizflexServiceImpl implements QuizflexService {
 
     private final Map<String, NerdPersistClient> nerdPersistClients;
     private Map<String, List<String>> topicwiseQuizIds;
+    private Map<String, List<String>> topicwiseNerdshotIds;
     private Map<String, List<String>> topicwiseRWCIds;
     private Map<String, Map<String, List<String>>> subtopicwiseQuizIds;
+    private Map<String, Map<String, List<String>>> subtopicwiseNerdshotIds;
     private Map<String, QuizflexEntity> contentMaster;
 
     private final JsonParser jsonParser = new JsonParser();
@@ -53,20 +55,23 @@ public class QuizflexServiceImpl implements QuizflexService {
     public void initialize() {
         try {
             topicwiseQuizIds = new HashMap<>();
+            topicwiseNerdshotIds = new HashMap<>();
             topicwiseRWCIds = new HashMap<>();
             subtopicwiseQuizIds = new HashMap<>();
+            subtopicwiseNerdshotIds = new HashMap<>();
             contentMaster = new HashMap<>();
 
             random = new Random();
-            fetchQuizflexDataFromPersist();
-            fetchRWCDataFromPersist();
+            fetchDataFromPersist("quizflex", topicwiseQuizIds, subtopicwiseQuizIds);
+            fetchDataFromPersist("nerdshots", topicwiseNerdshotIds, subtopicwiseNerdshotIds);
+            fetchDataFromPersist("rwc", topicwiseRWCIds, null);
         } catch (Exception e) {
             log.error("Error during initialization: {}", e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private void fetchQuizflexDataFromPersist() throws JsonProcessingException {
+    private void fetchDataFromPersist(String type, Map<String, List<String>> topicwiseIds, Map<String, Map<String, List<String>>> subtopicwiseIds) throws JsonProcessingException {
         JsonArray connectionsArray = dbConnections.getArray("connections");
         com.google.gson.JsonArray gsonConnectionsArray = jsonParser.parse((connectionsArray.toString())).getAsJsonArray();
 
@@ -80,7 +85,7 @@ public class QuizflexServiceImpl implements QuizflexService {
             for (int j = 0; j < currentScopes.size(); j++) {
                 com.google.gson.JsonObject currentScope = currentScopes.get(j).getAsJsonObject();
                 String thisScopeName = currentScope.get("scope").getAsString();
-                if (!thisScopeName.equals("quizflex"))
+                if (!thisScopeName.equals(type))
                     continue;
 
                 ObjectMapper objectMapper = new ObjectMapper();
@@ -101,65 +106,20 @@ public class QuizflexServiceImpl implements QuizflexService {
                         com.google.gson.JsonObject thisQuizDocument = allDocuments.get(doc);
                         QuizflexEntity quizflexEntity = objectMapper.readValue(thisQuizDocument.toString(), QuizflexEntity.class);
                         contentMaster.put(quizflexEntity.getId(), quizflexEntity);
-                        List<String> currentTopicWiseIds = topicwiseQuizIds.getOrDefault(collectionsToTopicMappingDoc.getString(thisCollectionName), new ArrayList<>());
+                        List<String> currentTopicWiseIds = topicwiseIds.getOrDefault(collectionsToTopicMappingDoc.getString(thisCollectionName), new ArrayList<>());
                         currentTopicWiseIds.add(quizflexEntity.getId());
-                        topicwiseQuizIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), currentTopicWiseIds);
+                        topicwiseIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), currentTopicWiseIds);
 
-                        Map<String, List<String>> subtopicMap = subtopicwiseQuizIds.getOrDefault(collectionsToTopicMappingDoc.getString(thisCollectionName), new HashMap<>());
-                        List<String> subtopicList = subtopicMap.getOrDefault(quizflexEntity.getSub_topic(), new ArrayList<>());
-                        subtopicList.add(quizflexEntity.getId());
-                        subtopicMap.put(quizflexEntity.getSub_topic(), subtopicList);
-                        subtopicwiseQuizIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), subtopicMap);
-                        log.info("Added topic: {}, sub topic: {}", collectionsToTopicMappingDoc.getString(thisCollectionName), quizflexEntity.getSub_topic());
+                        if(subtopicwiseIds != null) {
+                            Map<String, List<String>> subtopicMap = subtopicwiseIds.getOrDefault(collectionsToTopicMappingDoc.getString(thisCollectionName), new HashMap<>());
+                            List<String> subtopicList = subtopicMap.getOrDefault(quizflexEntity.getSub_topic(), new ArrayList<>());
+                            subtopicList.add(quizflexEntity.getId());
+                            subtopicMap.put(quizflexEntity.getSub_topic(), subtopicList);
+                            subtopicwiseIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), subtopicMap);
+                            log.info("Added topic: {}, sub topic: {}", collectionsToTopicMappingDoc.getString(thisCollectionName), quizflexEntity.getSub_topic());
+                        }
                     }
                     log.info("Loaded: {} documents for: {}", allDocuments.size(), schemaId);
-                }
-            }
-        }
-    }
-
-    private void fetchRWCDataFromPersist() throws JsonProcessingException {
-        JsonArray connectionsArray = dbConnections.getArray("connections");
-        com.google.gson.JsonArray gsonConnectionsArray = jsonParser.parse((connectionsArray.toString())).getAsJsonArray();
-
-        for (int i = 0; i < gsonConnectionsArray.size(); i++) {
-            com.google.gson.JsonObject currentConnection = gsonConnectionsArray.get(i).getAsJsonObject();
-            String thisBucketName = currentConnection.get("bucket").getAsString();
-            if (!thisBucketName.equals("content"))
-                continue;
-
-            com.google.gson.JsonArray currentScopes = currentConnection.get("scopes").getAsJsonArray();
-            for (int j = 0; j < currentScopes.size(); j++) {
-                com.google.gson.JsonObject currentScope = currentScopes.get(j).getAsJsonObject();
-                String thisScopeName = currentScope.get("scope").getAsString();
-                if (!thisScopeName.equals("rwc"))
-                    continue;
-
-                ObjectMapper objectMapper = new ObjectMapper();
-                com.google.gson.JsonArray currentCollections = currentScope.get("collections").getAsJsonArray();
-                for (int k = 0; k < currentCollections.size(); k++) {
-                    String thisCollectionName = currentCollections.get(k).getAsString();
-                    String schemaId = thisBucketName + "." + thisScopeName + "." + thisCollectionName;
-                    NerdPersistClient thisPersistClient = nerdPersistClients.get(schemaId);
-                    if (thisPersistClient == null) {
-                        log.error("Schema id is null: {}", schemaId);
-                        continue;
-                    }
-
-                    JsonObject collectionsToTopicMappingDoc = configCollection.get("collection_topic_mapping").contentAsObject();
-                    String query = "SELECT * FROM `" + schemaId.replace(".", "`.`") + "` WHERE topic_name = '" + collectionsToTopicMappingDoc.getString(thisCollectionName) + "'";
-                    List<com.google.gson.JsonObject> allDocuments = thisPersistClient.getDocumentsByQuery(query, thisCollectionName);
-                    for (int doc = 0; doc < allDocuments.size(); doc++) {
-                        com.google.gson.JsonObject thisQuizDocument = allDocuments.get(doc);
-                        QuizflexEntity quizflexEntity = objectMapper.readValue(thisQuizDocument.toString(), QuizflexEntity.class);
-                        contentMaster.put(quizflexEntity.getId(), quizflexEntity);
-                        List<String> currentTopicWiseIds = topicwiseRWCIds.getOrDefault(collectionsToTopicMappingDoc.getString(thisCollectionName), new ArrayList<>());
-                        currentTopicWiseIds.add(quizflexEntity.getId());
-                        topicwiseRWCIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), currentTopicWiseIds);
-
-                        log.info("RWC: Added topic: {}, sub topic: {}", collectionsToTopicMappingDoc.getString(thisCollectionName), quizflexEntity.getSub_topic());
-                    }
-                    log.info("RWC: Loaded: {} documents for: {}", allDocuments.size(), schemaId);
                 }
             }
         }
@@ -182,22 +142,11 @@ public class QuizflexServiceImpl implements QuizflexService {
         List<QuizflexEntity> responseEntities = new ArrayList<>();
 
         log.info("Getting NerdShot: topic: {}, subtopic: {}, limit: {}", topic, subtopic, limit);
-        List<String> responseQuizflexIds = subtopic.equalsIgnoreCase("random") ? getRandomQuizflexIds(limit, topicwiseQuizIds.get(topic)) : getRandomQuizflexIds(limit, subtopicwiseQuizIds.get(topic).get(subtopic));
+        List<String> responseQuizflexIds = subtopic.equalsIgnoreCase("random") ? getRandomQuizflexIds(limit, topicwiseNerdshotIds.get(topic)) : getRandomQuizflexIds(limit, subtopicwiseNerdshotIds.get(topic).get(subtopic));
         for(int i = 0; i < responseQuizflexIds.size(); i ++) {
-            QuizflexEntity thisEntity = getQuizFlex(responseQuizflexIds.get(i));
-            String titleAndQuestion = (thisEntity.getTitle() + " " + thisEntity.getQuestion()).toLowerCase();
-            if(titleAndQuestion.contains("code") || titleAndQuestion.contains("coding"))
-                continue;
-
-            responseEntities.add(thisEntity);
+            responseEntities.add(getQuizFlex(responseQuizflexIds.get(i)));
         }
-        if(responseEntities.isEmpty()){
-            log.warn("Empty entity, probably due to all shots having 'code' or 'coding' strings, trying again.");
-            return getNerdShots(topic, subtopic, limit);
-        }
-        else {
-            return responseEntities;
-        }
+        return responseEntities;
     }
 
     @Override
@@ -232,7 +181,6 @@ public class QuizflexServiceImpl implements QuizflexService {
         thisQuizFlex.setDislikes(shotsStatsPersist.getCounter(id + DISLIKES_SUFFIX));
         thisQuizFlex.setFavorites(shotsStatsPersist.getCounter(id + FAVS_SUFFIX));
         thisQuizFlex.setShares(shotsStatsPersist.getCounter(id + SHARES_SUFFIX));
-
         return thisQuizFlex;
     }
 

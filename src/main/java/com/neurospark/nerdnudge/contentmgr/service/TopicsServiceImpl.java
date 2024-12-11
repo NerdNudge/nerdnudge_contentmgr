@@ -22,7 +22,7 @@ import java.util.*;
 public class TopicsServiceImpl implements TopicsService{
 
     private Map<String, TopicsEntity> topicsEntities = null;
-    private Map<String, List<SubtopicsEntity>> subtopicEntities = null;
+    private Map<String, Map<String, String>> subtopicCache = null;
     private Map<String, String> topicsConfigCache;
     private long lastFetchTime;
     private int retentionInMillis = 60 * 60 * 1000;
@@ -38,18 +38,8 @@ public class TopicsServiceImpl implements TopicsService{
                              @Qualifier("shotsStatsPersist") NerdPersistClient shotsStatsPersist) {
         this.configPersist = configPersist;
         this.shotsStatsPersist = shotsStatsPersist;
-        subtopicEntities = new HashMap<>();
+        subtopicCache = new HashMap<>();
         updateTopicsCache();
-    }
-
-    @Override
-    public TopicsWithUserTopicStatsEntity getTopics(String userId) {
-        TopicsWithUserTopicStatsEntity topicsWithUserTopicStatsEntity = new TopicsWithUserTopicStatsEntity();
-        topicsWithUserTopicStatsEntity.setTopics(getTopicsFromCache());
-        topicsWithUserTopicStatsEntity.setConfig(getTopicsConfigFromCache());
-        topicsWithUserTopicStatsEntity.setUserStats(getUserStats(userId));
-
-        return topicsWithUserTopicStatsEntity;
     }
 
     private Map<String, UserTopicsStatsEntity> getUserStats(String userId) {
@@ -126,28 +116,68 @@ public class TopicsServiceImpl implements TopicsService{
     }
 
     @Override
-    public List<SubtopicsEntity> getSubtopics(String topic) {
-        if(subtopicEntities.containsKey(topic)) {
-            log.info("Returning subtopics from cache for topic: {}", topic);
-            return subtopicEntities.get(topic);
+    public SubtopicsEntity getSubtopics(String topic, String userId) {
+        SubtopicsEntity subtopicsEntity = new SubtopicsEntity();
+        subtopicsEntity.setSubtopicData(getSubtopicDataFromCache(topic));
+        subtopicsEntity.setUserTopicScore(getUserScore(userId, topic));
+        return subtopicsEntity;
+    }
+
+    private void updateSubtopicsCache(String topic) {
+        if(subtopicCache == null) {
+            subtopicCache = new HashMap<>();
         }
 
-        log.info("Fetching subtopics for topic: {}", topicNameToTopicCodeMapping.get(topic).getAsString());
-        List<SubtopicsEntity> subtopicEntitiesList = new ArrayList<>();
         JsonObject subtopicsObject = configPersist.get(topicNameToTopicCodeMapping.get(topic).getAsString() + "_subtopics");
         Iterator<Map.Entry<String, JsonElement>> subtopicsIterator = subtopicsObject.entrySet().iterator();
+        Map<String, String> thisTopicSubtopics = new HashMap<>();
         while(subtopicsIterator.hasNext()) {
             Map.Entry<String, JsonElement> thisEntry = subtopicsIterator.next();
             String value = thisEntry.getValue().getAsString();
             if (value != null) {
-                SubtopicsEntity currentSubtopic = new SubtopicsEntity();
-                currentSubtopic.setSubtopicName(thisEntry.getKey());
-                currentSubtopic.setDescription(value);
-
-                subtopicEntitiesList.add(currentSubtopic);
+                thisTopicSubtopics.put(thisEntry.getKey(), value);
             }
         }
-        subtopicEntities.put(topic, subtopicEntitiesList);
-        return subtopicEntitiesList;
+        subtopicCache.put(topic, thisTopicSubtopics);
+        log.info("sub-topics for topic: {}: {}", topic, thisTopicSubtopics);
+    }
+
+    private Map<String, String> getSubtopicDataFromCache(String topic) {
+        if(subtopicCache == null || ! subtopicCache.containsKey(topic)) {
+            updateSubtopicsCache(topic);
+        }
+        return subtopicCache.get(topic);
+    }
+
+    @Override
+    public TopicsWithUserTopicStatsEntity getTopics(String userId) {
+        TopicsWithUserTopicStatsEntity topicsWithUserTopicStatsEntity = new TopicsWithUserTopicStatsEntity();
+        topicsWithUserTopicStatsEntity.setTopics(getTopicsFromCache());
+        topicsWithUserTopicStatsEntity.setConfig(getTopicsConfigFromCache());
+        topicsWithUserTopicStatsEntity.setUserStats(getUserStats(userId));
+
+        return topicsWithUserTopicStatsEntity;
+    }
+
+    private double getUserScore(String userId, String topic) {
+        RestTemplate restTemplate = new RestTemplate();
+        Double userTopicScore = 0.0;
+        String topicCode = topicNameToTopicCodeMapping.get(topic).getAsString();
+        String userTopicScorePath = "/getUserTopicScore/" + userId + "/" + topicCode;
+        log.info("Fetching user topic score for: {}, topic: {}, topicCode: {}", userId, topic, topicCode);
+        try {
+            ResponseEntity<ApiResponse> response = restTemplate.getForEntity(userInsightsEndpoint + userTopicScorePath, ApiResponse.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                ApiResponse apiResponse = response.getBody();
+                userTopicScore = (Double) apiResponse.getData();
+            } else {
+                log.warn("Failed to retrieve user topic score.");
+            }
+        } catch (Exception e) {
+            log.error("Exception while calling user topic score API");
+            e.printStackTrace();
+        }
+
+        return userTopicScore;
     }
 }
