@@ -130,7 +130,7 @@ public class TopicsServiceImpl implements TopicsService{
 
         JsonObject subtopicsObject = configPersist.get(topicNameToTopicCodeMapping.get(topic).getAsString() + "_subtopics");
         Iterator<Map.Entry<String, JsonElement>> subtopicsIterator = subtopicsObject.entrySet().iterator();
-        Map<String, String> thisTopicSubtopics = new HashMap<>();
+        Map<String, String> thisTopicSubtopics = new LinkedHashMap<>();
         while(subtopicsIterator.hasNext()) {
             Map.Entry<String, JsonElement> thisEntry = subtopicsIterator.next();
             String value = thisEntry.getValue().getAsString();

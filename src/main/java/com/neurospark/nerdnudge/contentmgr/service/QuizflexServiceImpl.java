@@ -64,6 +64,7 @@ public class QuizflexServiceImpl implements QuizflexService {
             random = new Random();
             fetchDataFromPersist("quizflex", topicwiseQuizIds, subtopicwiseQuizIds);
             fetchDataFromPersist("nerdshots", topicwiseNerdshotIds, subtopicwiseNerdshotIds);
+            fetchDataFromPersist("rwc", topicwiseQuizIds, subtopicwiseQuizIds);
             fetchDataFromPersist("rwc", topicwiseRWCIds, null);
         } catch (Exception e) {
             log.error("Error during initialization: {}", e.getMessage());
