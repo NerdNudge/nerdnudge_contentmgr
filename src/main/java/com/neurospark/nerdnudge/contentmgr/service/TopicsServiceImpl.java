@@ -1,11 +1,9 @@
 package com.neurospark.nerdnudge.contentmgr.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.neurospark.nerdnudge.contentmgr.dto.SubtopicsEntity;
-import com.neurospark.nerdnudge.contentmgr.dto.TopicsEntity;
-import com.neurospark.nerdnudge.contentmgr.dto.TopicsWithUserTopicStatsEntity;
-import com.neurospark.nerdnudge.contentmgr.dto.UserTopicsStatsEntity;
+import com.neurospark.nerdnudge.contentmgr.dto.*;
 import com.neurospark.nerdnudge.contentmgr.response.ApiResponse;
 import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +22,7 @@ public class TopicsServiceImpl implements TopicsService{
     private Map<String, TopicsEntity> topicsEntities = null;
     private Map<String, Map<String, String>> subtopicCache = null;
     private Map<String, String> topicsConfigCache;
+    private Map<String, Integer> userLevelConfig;
     private long lastFetchTime;
     private int retentionInMillis = 60 * 60 * 1000;
     private final NerdPersistClient configPersist;
@@ -42,16 +41,25 @@ public class TopicsServiceImpl implements TopicsService{
         updateTopicsCache();
     }
 
-    private Map<String, UserTopicsStatsEntity> getUserStats(String userId) {
+    private Map<String, UserTopicsStatsEntityResponse> getUserStats(String userId) {
         log.info("Fetching user topic stats for: {}", userId);
         RestTemplate restTemplate = new RestTemplate();
-        Map<String, UserTopicsStatsEntity> userTopicsStatsEntities = null;
+        Map<String, UserTopicsStatsEntityResponse> userTopicsStatsResponse = new HashMap<>();
         String userTopicStatsPath = "/getUserTopicStats/" + userId;
         try {
             ResponseEntity<ApiResponse> response = restTemplate.getForEntity(userInsightsEndpoint + userTopicStatsPath, ApiResponse.class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 ApiResponse apiResponse = response.getBody();
-                userTopicsStatsEntities = (Map<String, UserTopicsStatsEntity>) apiResponse.getData();
+                log.info("Response from insights: {}", apiResponse.getData());
+                Map<String, LinkedHashMap<String, Object>> rawMap = (Map<String, LinkedHashMap<String, Object>>) apiResponse.getData();
+
+                ObjectMapper mapper = new ObjectMapper();
+                for (Map.Entry<String, LinkedHashMap<String, Object>> entry : rawMap.entrySet()) {
+                    UserTopicsStatsEntity entity = mapper.convertValue(entry.getValue(), UserTopicsStatsEntity.class);
+                    UserTopicsStatsEntityResponse responseDto = mapUserTopicsStatsEntityToResponse(entity, entry.getKey());
+                    userTopicsStatsResponse.put(entry.getKey(), responseDto);
+                }
+                log.info("Response mapped: {}", userTopicsStatsResponse);
             } else {
                 log.warn("Failed to retrieve user topic stats data.");
             }
@@ -60,15 +68,38 @@ public class TopicsServiceImpl implements TopicsService{
             e.printStackTrace();
         }
 
-        return userTopicsStatsEntities;
+        return userTopicsStatsResponse.isEmpty() ? Collections.emptyMap() : userTopicsStatsResponse;
     }
 
-    private void updateTopicsConfigCache() {
-        topicsConfigCache = new HashMap<>();
-        JsonObject collectionMapping = configPersist.get("nerd_config");
-        topicsConfigCache.put("rwcDailyQuizLimit", collectionMapping.get("rwcDailyQuizLimit").getAsString());
-        topicsConfigCache.put("rwcDailyQuizTime", collectionMapping.get("rwcDailyQuizTime").getAsString());
-        log.info("topics config cache: {}", topicsConfigCache);
+    private UserTopicsStatsEntityResponse mapUserTopicsStatsEntityToResponse(UserTopicsStatsEntity userTopicsStatsEntity, String topic) {
+        UserTopicsStatsEntityResponse userTopicsStatsEntityResponse = new UserTopicsStatsEntityResponse();
+        userTopicsStatsEntityResponse.setLastTaken(userTopicsStatsEntity.getLastTaken());
+        userTopicsStatsEntityResponse.setLevel(userTopicsStatsEntity.getLevel());
+        userTopicsStatsEntityResponse.setProgress(getTopicProgress(userTopicsStatsEntity, topic));
+        return userTopicsStatsEntityResponse;
+    }
+
+    private double getTopicProgress(UserTopicsStatsEntity userTopicsStatsEntity, String topic) {
+        log.info("Getting Progress for topic: {}", topic);
+        Map<String, String> subtopics = getSubtopicDataFromCache(topicCodeToTopicNameMapping.get(topic).getAsString());
+        log.info("subtopics: {}", subtopics);
+        double progress = (userTopicsStatsEntity.getLevel() * 100 ) / subtopics.size();
+        log.info("Progress for topic: {}", progress);
+        return progress;
+    }
+
+    private void updateUserLevelsConfigCache() {
+        userLevelConfig = new HashMap<>();
+        JsonObject nerdConfigObject = configPersist.get("nerd_config");
+        JsonObject userLevelsObject = nerdConfigObject.get("userLevels").getAsJsonObject();
+        Iterator<Map.Entry<String, JsonElement>> userLevelsIterator = userLevelsObject.entrySet().iterator();
+        while(userLevelsIterator.hasNext()) {
+            Map.Entry<String, JsonElement> thisLevelEntry = userLevelsIterator.next();
+            String thisLevel = thisLevelEntry.getKey();
+            int thisLevelTarget = thisLevelEntry.getValue().getAsJsonObject().get("target").getAsInt();
+            userLevelConfig.put(thisLevel, thisLevelTarget);
+        }
+        log.info("user levels config cache: {}", userLevelConfig);
     }
 
     private void updateTopicsCache() {
@@ -95,18 +126,17 @@ public class TopicsServiceImpl implements TopicsService{
 
     private Map<String, TopicsEntity> getTopicsFromCache() {
         if(topicsEntities == null || ! isWithinRetentionTime()) {
-            updateTopicsConfigCache();
             updateTopicsCache();
         }
 
         return topicsEntities;
     }
 
-    private Map<String, String> getTopicsConfigFromCache() {
-        if(topicsConfigCache == null || ! isWithinRetentionTime())
-            updateTopicsConfigCache();
+    private Map<String, Integer> getUserLevelsConfigFromCache() {
+        if(userLevelConfig == null || ! isWithinRetentionTime())
+            updateUserLevelsConfigCache();
 
-        return topicsConfigCache;
+        return userLevelConfig;
     }
 
     private boolean isWithinRetentionTime() {
@@ -119,7 +149,7 @@ public class TopicsServiceImpl implements TopicsService{
     public SubtopicsEntity getSubtopics(String topic, String userId) {
         SubtopicsEntity subtopicsEntity = new SubtopicsEntity();
         subtopicsEntity.setSubtopicData(getSubtopicDataFromCache(topic));
-        subtopicsEntity.setUserTopicScore(getUserScore(userId, topic));
+        subtopicsEntity.setUserLevelTargetsConfig(getUserLevelsConfigFromCache());
         return subtopicsEntity;
     }
 
@@ -153,31 +183,8 @@ public class TopicsServiceImpl implements TopicsService{
     public TopicsWithUserTopicStatsEntity getTopics(String userId) {
         TopicsWithUserTopicStatsEntity topicsWithUserTopicStatsEntity = new TopicsWithUserTopicStatsEntity();
         topicsWithUserTopicStatsEntity.setTopics(getTopicsFromCache());
-        topicsWithUserTopicStatsEntity.setConfig(getTopicsConfigFromCache());
         topicsWithUserTopicStatsEntity.setUserStats(getUserStats(userId));
 
         return topicsWithUserTopicStatsEntity;
-    }
-
-    private double getUserScore(String userId, String topic) {
-        RestTemplate restTemplate = new RestTemplate();
-        Double userTopicScore = 0.0;
-        String topicCode = topicNameToTopicCodeMapping.get(topic).getAsString();
-        String userTopicScorePath = "/getUserTopicScore/" + userId + "/" + topicCode;
-        log.info("Fetching user topic score for: {}, topic: {}, topicCode: {}", userId, topic, topicCode);
-        try {
-            ResponseEntity<ApiResponse> response = restTemplate.getForEntity(userInsightsEndpoint + userTopicScorePath, ApiResponse.class);
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                ApiResponse apiResponse = response.getBody();
-                userTopicScore = (Double) apiResponse.getData();
-            } else {
-                log.warn("Failed to retrieve user topic score.");
-            }
-        } catch (Exception e) {
-            log.error("Exception while calling user topic score API");
-            e.printStackTrace();
-        }
-
-        return userTopicScore;
     }
 }

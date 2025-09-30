@@ -7,6 +7,5 @@ import java.util.Map;
 @Data
 public class TopicsWithUserTopicStatsEntity {
     Map<String, TopicsEntity> topics;
-    Map<String, UserTopicsStatsEntity> userStats;
-    Map<String, String> config;
+    Map<String, UserTopicsStatsEntityResponse> userStats;
 }

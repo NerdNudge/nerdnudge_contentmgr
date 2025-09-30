@@ -7,5 +7,5 @@ import java.util.Map;
 @Data
 public class SubtopicsEntity {
     Map<String, String> subtopicData;
-    double userTopicScore;
+    Map<String, Integer> userLevelTargetsConfig;
 }
