@@ -23,7 +23,6 @@ public class QuizflexServiceImpl implements QuizflexService {
     private final Map<String, NerdPersistClient> nerdPersistClients;
     private Map<String, List<String>> topicwiseQuizIds;
     private Map<String, List<String>> topicwiseNerdshotIds;
-    private Map<String, List<String>> topicwiseRWCIds;
     private Map<String, Map<String, List<String>>> subtopicwiseQuizIds;
     private Map<String, Map<String, List<String>>> subtopicwiseNerdshotIds;
     private Map<String, QuizflexEntity> contentMaster;
@@ -56,7 +55,6 @@ public class QuizflexServiceImpl implements QuizflexService {
         try {
             topicwiseQuizIds = new HashMap<>();
             topicwiseNerdshotIds = new HashMap<>();
-            topicwiseRWCIds = new HashMap<>();
             subtopicwiseQuizIds = new HashMap<>();
             subtopicwiseNerdshotIds = new HashMap<>();
             contentMaster = new HashMap<>();
@@ -64,8 +62,6 @@ public class QuizflexServiceImpl implements QuizflexService {
             random = new Random();
             fetchDataFromPersist("quizflex", topicwiseQuizIds, subtopicwiseQuizIds);
             fetchDataFromPersist("nerdshots", topicwiseNerdshotIds, subtopicwiseNerdshotIds);
-            fetchDataFromPersist("rwc", topicwiseQuizIds, subtopicwiseQuizIds);
-            fetchDataFromPersist("rwc", topicwiseRWCIds, null);
         } catch (Exception e) {
             log.error("Error during initialization: {}", e.getMessage());
             e.printStackTrace();
@@ -144,17 +140,6 @@ public class QuizflexServiceImpl implements QuizflexService {
 
         log.info("Getting NerdShot: topic: {}, subtopic: {}, limit: {}", topic, subtopic, limit);
         List<String> responseQuizflexIds = subtopic.equalsIgnoreCase("random") ? getRandomQuizflexIds(limit, topicwiseNerdshotIds.get(topic)) : getRandomQuizflexIds(limit, subtopicwiseNerdshotIds.get(topic).get(subtopic));
-        for(int i = 0; i < responseQuizflexIds.size(); i ++) {
-            responseEntities.add(getQuizFlex(responseQuizflexIds.get(i)));
-        }
-        return responseEntities;
-    }
-
-    @Override
-    public List<QuizflexEntity> getRealworldChallenge(String topic, String subtopic, int limit) throws Exception {
-        List<QuizflexEntity> responseEntities = new ArrayList<>();
-        log.info("Getting RWC: topic: {}, subtopic: {}, limit: {}", topic, subtopic, limit);
-        List<String> responseQuizflexIds = getRandomQuizflexIds(limit, topicwiseRWCIds.get(topic));
         for(int i = 0; i < responseQuizflexIds.size(); i ++) {
             responseEntities.add(getQuizFlex(responseQuizflexIds.get(i)));
         }
