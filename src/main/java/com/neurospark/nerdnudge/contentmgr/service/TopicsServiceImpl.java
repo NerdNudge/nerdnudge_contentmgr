@@ -155,9 +155,10 @@ public class TopicsServiceImpl implements TopicsService{
     }
 
     public Map<String, String> getUserSubtopicLevels(String topic, String userId) {
-        log.info("Fetching user subtopic levels for: {}, topic: {}", userId, topic);
+        String topicCode = topicNameToTopicCodeMapping.get(topic).getAsString();
+        log.info("Fetching user subtopic levels for: {}, topic: {}", userId, topicCode);
         RestTemplate restTemplate = new RestTemplate();
-        String userSubtopicLevelsPath = "/getUserSubtopicLevels/" + topic + "/" + userId;
+        String userSubtopicLevelsPath = "/getUserSubtopicLevels/" + topicCode + "/" + userId;
         try {
             ResponseEntity<ApiResponse> response = restTemplate.getForEntity(userInsightsEndpoint + userSubtopicLevelsPath, ApiResponse.class);
             log.info("Response from insights: {}", response);

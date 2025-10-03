@@ -121,7 +121,8 @@ public class QuizflexServiceImpl implements QuizflexService {
                     }
 
                     JsonObject collectionsToTopicMappingDoc = configCollection.get("collection_topic_mapping").contentAsObject();
-                    String query = "SELECT * FROM `" + schemaId.replace(".", "`.`") + "` WHERE topic_name = '" + collectionsToTopicMappingDoc.getString(thisCollectionName) + "'";
+                    String topicName = collectionsToTopicMappingDoc.getString(thisCollectionName);
+                    String query = "SELECT * FROM `" + schemaId.replace(".", "`.`") + "` WHERE topic_name = '" + topicName + "'";
                     List<com.google.gson.JsonObject> allDocuments = thisPersistClient.getDocumentsByQuery(query, thisCollectionName);
                     for (int doc = 0; doc < allDocuments.size(); doc++) {
                         com.google.gson.JsonObject thisQuizDocument = allDocuments.get(doc);
@@ -132,7 +133,7 @@ public class QuizflexServiceImpl implements QuizflexService {
                         List<String> difficultyLevelIds = topicWiseDifficultyMap.getOrDefault(currentDifficultyLevel, new ArrayList<>());
                         difficultyLevelIds.add(quizflexEntity.getId());
                         topicWiseDifficultyMap.put(currentDifficultyLevel, difficultyLevelIds);
-                        topicwiseIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), topicWiseDifficultyMap);
+                        topicwiseIds.put(topicName, topicWiseDifficultyMap);
 
                         if(subtopicwiseIds != null) {
                             Map<String, Map<String, List<String>>> subtopicMap = subtopicwiseIds.getOrDefault(collectionsToTopicMappingDoc.getString(thisCollectionName), new HashMap<>());
@@ -142,10 +143,25 @@ public class QuizflexServiceImpl implements QuizflexService {
                             subtopicList.add(quizflexEntity.getId());
                             subtopicDifficultyMap.put(currentDifficultyLevel, subtopicList);
                             subtopicMap.put(quizflexEntity.getSub_topic(), subtopicDifficultyMap);
-                            subtopicwiseIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), subtopicMap);
-                            log.info("Added topic: {}, sub topic: {}", collectionsToTopicMappingDoc.getString(thisCollectionName), quizflexEntity.getSub_topic());
+                            subtopicwiseIds.put(topicName, subtopicMap);
+                            //log.info("Added topic: {}, sub topic: {}", topicName, quizflexEntity.getSub_topic());
                         }
                     }
+
+                    Map<String, Map<String, List<String>>> topicsMap = subtopicwiseIds.get(topicName);
+                    for (Map.Entry<String, Map<String, List<String>>> subtopicEntry : topicsMap.entrySet()) {
+                        String subtopicName = subtopicEntry.getKey();
+                        Map<String, List<String>> innerMap = subtopicEntry.getValue();
+
+                        log.info("Topic: {}. Subtopic: {}", topicName, subtopicName);
+
+                        for (Map.Entry<String, List<String>> innerEntry : innerMap.entrySet()) {
+                            String innerKey = innerEntry.getKey();
+                            int size = innerEntry.getValue().size();
+                            log.info("   {} -> {}", innerKey, size);
+                        }
+                    }
+
                     log.info("Loaded: {} documents for: {}", allDocuments.size(), schemaId);
                 }
             }
@@ -197,7 +213,7 @@ public class QuizflexServiceImpl implements QuizflexService {
                             subtopicList.add(quizflexEntity.getId());
                             subtopicMap.put(quizflexEntity.getSub_topic(), subtopicList);
                             subtopicwiseIds.put(collectionsToTopicMappingDoc.getString(thisCollectionName), subtopicMap);
-                            log.info("Added topic: {}, sub topic: {}", collectionsToTopicMappingDoc.getString(thisCollectionName), quizflexEntity.getSub_topic());
+                            //log.info("Added topic: {}, sub topic: {}", collectionsToTopicMappingDoc.getString(thisCollectionName), quizflexEntity.getSub_topic());
                         }
                     }
                     log.info("Loaded: {} documents for: {}", allDocuments.size(), schemaId);
