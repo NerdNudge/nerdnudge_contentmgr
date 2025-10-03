@@ -8,4 +8,5 @@ import java.util.Map;
 public class SubtopicsEntity {
     Map<String, String> subtopicData;
     Map<String, Integer> userLevelTargetsConfig;
+    Map<String, String> userSubtopicLevels;
 }

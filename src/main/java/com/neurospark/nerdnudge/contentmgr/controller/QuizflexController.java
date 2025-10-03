@@ -25,9 +25,10 @@ public class QuizflexController {
     public ApiResponse<List<QuizflexEntity>> getQuizFlexes(
             @RequestParam String topic,
             @RequestParam String subtopic,
-            @RequestParam int limit) throws Exception {
+            @RequestParam int limit,
+            @RequestParam String userId) throws Exception {
         long startTime = System.currentTimeMillis();
-        List<QuizflexEntity> quizflexes = quizflexService.getQuizFlexes(topic, subtopic, limit);
+        List<QuizflexEntity> quizflexes = quizflexService.getQuizFlexes(topic, subtopic, limit, userId);
         long endTime = System.currentTimeMillis();
         new Metric.MetricBuilder().setName("quizFetch").setUnit(Metric.Unit.MILLISECONDS).setValue((endTime - startTime)).build();
         return new ApiResponse<>(Constants.SUCCESS, "Quizflexes fetched successfully", quizflexes, (endTime - startTime), HttpStatus.OK.value());

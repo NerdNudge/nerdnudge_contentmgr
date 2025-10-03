@@ -1,5 +1,6 @@
 package com.neurospark.nerdnudge.contentmgr.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -21,7 +22,6 @@ public class TopicsServiceImpl implements TopicsService{
 
     private Map<String, TopicsEntity> topicsEntities = null;
     private Map<String, Map<String, String>> subtopicCache = null;
-    private Map<String, String> topicsConfigCache;
     private Map<String, Integer> userLevelConfig;
     private long lastFetchTime;
     private int retentionInMillis = 60 * 60 * 1000;
@@ -150,7 +150,35 @@ public class TopicsServiceImpl implements TopicsService{
         SubtopicsEntity subtopicsEntity = new SubtopicsEntity();
         subtopicsEntity.setSubtopicData(getSubtopicDataFromCache(topic));
         subtopicsEntity.setUserLevelTargetsConfig(getUserLevelsConfigFromCache());
+        subtopicsEntity.setUserSubtopicLevels(getUserSubtopicLevels(topic, userId));
         return subtopicsEntity;
+    }
+
+    public Map<String, String> getUserSubtopicLevels(String topic, String userId) {
+        log.info("Fetching user subtopic levels for: {}, topic: {}", userId, topic);
+        RestTemplate restTemplate = new RestTemplate();
+        String userSubtopicLevelsPath = "/getUserSubtopicLevels/" + topic + "/" + userId;
+        try {
+            ResponseEntity<ApiResponse> response = restTemplate.getForEntity(userInsightsEndpoint + userSubtopicLevelsPath, ApiResponse.class);
+            log.info("Response from insights: {}", response);
+            log.info("{}", response.getStatusCode());
+            log.info("{}", response.getBody());
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                ApiResponse apiResponse = response.getBody();
+                log.info("Response from insights for user subtopic levels: {}", apiResponse.getData());
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, String> userTopicsStatsResponse = mapper.convertValue(apiResponse.getData(), new TypeReference<Map<String, String>>() {});
+                log.info("Response from user subtopic levels: {}", userTopicsStatsResponse);
+                return userTopicsStatsResponse;
+            } else {
+                log.warn("Failed to retrieve user topic stats data.");
+            }
+        } catch (Exception e) {
+            log.error("Exception while calling user topic stats API");
+            e.printStackTrace();
+        }
+
+        return new HashMap<>();
     }
 
     private void updateSubtopicsCache(String topic) {

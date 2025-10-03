@@ -7,7 +7,7 @@ import com.neurospark.nerdnudge.contentmgr.dto.QuizflexEntity;
 import java.util.List;
 
 public interface QuizflexService {
-    List<QuizflexEntity> getQuizFlexes(String topic, String subtopic, int limit) throws Exception;
+    List<QuizflexEntity> getQuizFlexes(String topic, String subtopic, int limit, String userId) throws Exception;
     List<QuizflexEntity> getNerdShots(String topic, String subtopic, int limit) throws Exception;
 
     QuizflexEntity getQuizflexById(String id) throws Exception;
